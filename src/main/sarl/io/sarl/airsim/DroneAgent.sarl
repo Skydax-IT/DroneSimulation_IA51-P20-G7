@@ -1,0 +1,23 @@
+/** 
+ * 
+ */
+package io.sarl.airsim
+
+import io.sarl.airsim.behaviors.target.ReachTargetPoint3D
+import io.sarl.core.Behaviors
+import io.sarl.core.Initialize
+
+/** 
+ * Agent in charge of driving a drone
+ * @author Alexandre Lombard
+ * 
+ */
+agent DroneAgent {
+	uses Behaviors
+	
+	on Initialize {		
+		//registerBehavior(new ForwardWithBasicAvoidance(this))
+		//registerBehavior(new ReachTargetPoint(this))
+		registerBehavior(new ReachTargetPoint3D(this))
+	}
+}
