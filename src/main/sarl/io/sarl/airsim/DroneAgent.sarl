@@ -4,6 +4,9 @@
 package io.sarl.airsim
 
 import io.sarl.airsim.behaviors.target.ReachTargetPoint3D
+//import io.sarl.airsim.behaviors.forward.ForwardWithBasicAvoidance
+
+//import io.sarl.airsim.behaviors.tests.TakeoffBehavior
 import io.sarl.core.Behaviors
 import io.sarl.core.Initialize
 
@@ -19,5 +22,6 @@ agent DroneAgent {
 		//registerBehavior(new ForwardWithBasicAvoidance(this))
 		//registerBehavior(new ReachTargetPoint(this))
 		registerBehavior(new ReachTargetPoint3D(this))
+		//registerBehavior(new TakeoffBehavior(this))
 	}
 }

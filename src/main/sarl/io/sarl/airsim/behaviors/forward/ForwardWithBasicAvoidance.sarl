@@ -35,14 +35,15 @@ behavior ForwardWithBasicAvoidance {
 	 * a direction, the direction is computed every time a perception is received
 	 */
 	on Initialize {
+			
 		info("Drone agent starting...")
 
 		emit(new Takeoff)
 
 		// Note: X is forward
-		in(3000) [
+		in(5000) [
 			every(1000) [
-				val dir = synchronized(this.direction) { this.direction }
+				val dir = synchronized (this.direction) { this.direction }
 				emit(new MoveByVelocity(
 					Math.cos(dir).floatValue,
 					Math.sin(dir).floatValue,

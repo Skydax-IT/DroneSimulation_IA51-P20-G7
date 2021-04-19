@@ -9,9 +9,19 @@ import io.sarl.airsim.influences.Takeoff
 import io.sarl.airsim.perceptions.MultirotorStatePerception
 import io.sarl.airsim.perceptions.sim.SimGroundTruthKinematicsPerception
 import io.sarl.airsim.perceptions.sim.SimPosePerception
-import io.sarl.airsim.simulation.influence.BatchedInfluenceReactionStrategy
 import io.sarl.airsim.simulation.allocation.FcfsFixedSizePoolAllocationStrategy
+import io.sarl.airsim.simulation.capacities.MultirotorSimulationControlCapacity
+import io.sarl.airsim.simulation.capacities.MultirotorSimulationPerceptionCapacity
+import io.sarl.airsim.simulation.capacities.SimulationControlCapacity
+import io.sarl.airsim.simulation.capacities.SimulationPerceptionCapacity
+import io.sarl.airsim.simulation.events.SimulationInitialized
+import io.sarl.airsim.simulation.influence.BatchedInfluenceReactionStrategy
 import io.sarl.airsim.simulation.scheduling.SimulationStrategy
+import io.sarl.airsim.simulation.skills.airsim.AirSimMultirotorControl
+import io.sarl.airsim.simulation.skills.airsim.AirSimMultirotorSimulationPerception
+import io.sarl.airsim.simulation.skills.airsim.AirSimSimulationControl
+import io.sarl.airsim.simulation.skills.airsim.AirSimSimulationPerception
+import static extension  io.sarl.airsim.simulation.scheduling.RealTimeSimulationStrategy.*
 import io.sarl.airsim.utils.ActiveWaitLock
 import io.sarl.core.DefaultContextInteractions
 import io.sarl.core.Initialize
@@ -21,19 +31,6 @@ import io.sarl.lang.core.Address
 import java.util.Collections
 import org.msgpack.rpc.Client
 import org.msgpack.rpc.loop.EventLoop
-
-import static io.sarl.airsim.simulation.scheduling.FixedStepSimulationStrategy.fixedStepSimulationStrategy
-import static io.sarl.airsim.simulation.scheduling.FixedStepBlockingSimulationStrategy.fixedStepBlockingSimulationStrategy
-import io.sarl.airsim.simulation.events.SimulationInitialized
-import io.sarl.airsim.simulation.influence.InfluenceReactionStrategy
-import io.sarl.airsim.simulation.capacities.SimulationControlCapacity
-import io.sarl.airsim.simulation.skills.airsim.AirSimSimulationControl
-import io.sarl.airsim.simulation.capacities.MultirotorSimulationControlCapacity
-import io.sarl.airsim.simulation.skills.airsim.AirSimMultirotorControl
-import io.sarl.airsim.simulation.capacities.SimulationPerceptionCapacity
-import io.sarl.airsim.simulation.skills.airsim.AirSimSimulationPerception
-import io.sarl.airsim.simulation.capacities.MultirotorSimulationPerceptionCapacity
-import io.sarl.airsim.simulation.skills.airsim.AirSimMultirotorSimulationPerception
 
 /**
  * Agent in charge of controlling the simulation, transmitting the influences and
@@ -95,7 +92,7 @@ agent SimulationControllerAgent {
 		pool.forEach[it.enableControl]
 
 		// At the beginning we started paused
-		simPause(true)
+		//simPause(true)
 
 		val influencesPropagated = new ActiveWaitLock()
 		
@@ -108,20 +105,24 @@ agent SimulationControllerAgent {
 			debug("Influences propagated...")
 			influencesPropagated.unlock
 		]
-
+	/*
 		simulationStrategy = fixedStepBlockingSimulationStrategy [
 			retrievePerceptionsBy = [ retrievePerceptions ]
 			canContinueIf = [!influencesPropagated.isLocked]
 			continueSimulationBy = [
-				debug("Continuing simulation (begin)...")
+				info("Continuing simulation (begin)...")
 				simContinueForTime(simulationStepMs / 1000.0f)
 				//Thread.sleep(2000)
 				influencesPropagated.lock
-				debug("Continuing simulation (end)...")
+				info("Continuing simulation (end)...")
 			]
 		]
-		
-//		simulationStrategy = fixedStepSimulationStrategy [
+		 */
+		simulationStrategy = realTimeSimulationStrategy [
+			retrievePerceptionsBy = [retrievePerceptions]
+		]
+
+		//		simulationStrategy = fixedStepSimulationStrategy [
 //			retrievePerceptionsBy = [ retrievePerceptions ]
 //			continueSimulationBy = [multirotorClient.simContinueForTime(simulationStepMs / 1000.0f) ]
 //		]
@@ -129,7 +130,8 @@ agent SimulationControllerAgent {
 		// Schedule the loop
 		atFixedDelay(simulationStepMs.longValue)[ simulationStrategy.loop ]
 		
-		in(2000) [ info("Sending the initialized simulation signal") emit(new SimulationInitialized) ]
+		in(2000) 
+		[ info("Sending the initialized simulation signal") emit(new SimulationInitialized) ]
 	}
 	
 	/**

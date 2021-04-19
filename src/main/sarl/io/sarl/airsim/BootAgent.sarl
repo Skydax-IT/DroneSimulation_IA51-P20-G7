@@ -19,6 +19,7 @@ agent BootAgent {
 	val agentToSpawn = 10
 
 	on Initialize {
+		
 		// Run the drone spawning strategy
 		runSpawnStrategy()
 		
