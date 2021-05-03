@@ -1,7 +1,7 @@
 # DroneSimulation_IA51-P20-G7
 Repository for UTBM Work Project of Drone Simulation for IA51 P20 Group 7
 
-Setup : -Instal SARL Version 10.1 and AirSim+Unreal latest version
+Setup : -Install SARL Version 10.1 and AirSim with Unreal 4.25
 - Copy AirSim settings.json file in D:\Users\Username\Documents\AirSim (Or the disk where AirSim is installed)
 - Setup launch configuration in SARL like on the ScreensLaunchConfiguration
 
