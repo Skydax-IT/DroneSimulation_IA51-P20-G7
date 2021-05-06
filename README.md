@@ -2,7 +2,7 @@
 Repository for UTBM Work Project of Drone Simulation for IA51 P20 Group 7
 
 Setup : 
-- Install SARL Version 10.1 and AirSim with Unreal 4.25
+- Install SARL Version 10.1 with JDK 11 and AirSim with Unreal 4.25
 - Clone the AirSim to Java API from https://github.com/alexandrelombard/airsim-jvm-api and build it with graddle
 - Copy AirSim settings.json file in D:\Users\Username\Documents\AirSim (Or the disk where AirSim is installed)
 - Setup launch configuration in SARL like on the ScreensLaunchConfiguration
