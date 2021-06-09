@@ -5,7 +5,7 @@ Setup :
 - Install SARL Version 10.1 with JDK 11 and AirSim with Unreal 4.25
 - Clone the AirSim to Java API from https://github.com/alexandrelombard/airsim-jvm-api and build it with gradlew build install
 - Copy AirSim settings.json file in D:\Users\Username\Documents\AirSim (Or the disk where AirSim is installed)
-- Import project on SARL as a SARL Maven Project
+- Import project on SARL as a SARL Maven Project (+ Maven Update cocher force update)
 - Setup launch configuration in SARL like on the ScreensLaunchConfiguration
 
 With the help of the work from :
