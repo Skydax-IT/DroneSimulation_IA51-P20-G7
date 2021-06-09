@@ -1,0 +1,15 @@
+/** 
+ * 
+ */
+package io.sarl.airsim.influences
+
+event RotateByYawRate {
+	val rot: Float
+	val duration: Float
+
+	new(rot : Float, duration : Float) {
+		this.rot = rot
+		this.duration = duration
+	}
+}
+

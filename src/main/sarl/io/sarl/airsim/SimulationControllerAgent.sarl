@@ -5,6 +5,7 @@ package io.sarl.airsim
 
 import fr.utbm.airsim.api.MultirotorClientInterface
 import io.sarl.airsim.influences.MoveByVelocity
+import io.sarl.airsim.influences.RotateByYawRate
 import io.sarl.airsim.influences.Takeoff
 import io.sarl.airsim.perceptions.MultirotorStatePerception
 import io.sarl.airsim.perceptions.sim.SimGroundTruthKinematicsPerception
@@ -21,7 +22,6 @@ import io.sarl.airsim.simulation.skills.airsim.AirSimMultirotorControl
 import io.sarl.airsim.simulation.skills.airsim.AirSimMultirotorSimulationPerception
 import io.sarl.airsim.simulation.skills.airsim.AirSimSimulationControl
 import io.sarl.airsim.simulation.skills.airsim.AirSimSimulationPerception
-import static extension  io.sarl.airsim.simulation.scheduling.RealTimeSimulationStrategy.*
 import io.sarl.airsim.utils.ActiveWaitLock
 import io.sarl.core.DefaultContextInteractions
 import io.sarl.core.Initialize
@@ -31,6 +31,8 @@ import io.sarl.lang.core.Address
 import java.util.Collections
 import org.msgpack.rpc.Client
 import org.msgpack.rpc.loop.EventLoop
+
+import static io.sarl.airsim.simulation.scheduling.RealTimeSimulationStrategy.*
 
 /**
  * Agent in charge of controlling the simulation, transmitting the influences and
@@ -52,7 +54,7 @@ agent SimulationControllerAgent {
 	/** The simulation step */
 	val simulationStepMs = 200.0f
 
-	val pool = newLinkedList("S0", "S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8", "S9")
+	val pool = newLinkedList("S0")
 	val affectationStrategy =
 			new FcfsFixedSizePoolAllocationStrategy([|
 				val pool = pool
@@ -156,6 +158,15 @@ agent SimulationControllerAgent {
 			body.moveByVelocity(occurrence.vx, occurrence.vy, occurrence.vz, occurrence.duration)
 		]
 		debug("MoveByVelocity (end)")
+	}
+
+	on RotateByYawRate {
+		debug("RotateByYawRate (begin)")
+		val body = affectationStrategy.affectOrGetBody(occurrence.source, [a, n|onAffectation(a, n)])
+		influenceReactionStrategy.influenceReceived(occurrence.source) [
+			body.rotateByYawRate(occurrence.rot, occurrence.duration)
+		]
+		debug("RotateByYawRate (end)")
 	}
 	
 	/** Retrieve the perceptions for a single agent */

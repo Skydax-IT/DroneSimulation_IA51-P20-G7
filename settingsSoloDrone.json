@@ -1,0 +1,21 @@
+{
+  "SeeDocsAt": "https://github.com/Microsoft/AirSim/blob/master/docs/settings_json.md",
+  "SettingsVersion": 1.2,
+  "SimMode": "Multirotor",
+  "ClockSpeed": 1.0,
+  "Vehicles": {
+    "S0": {
+      "VehicleType": "SimpleFlight",
+      "AutoCreate": true,
+      "AllowAPIAlways": true,
+      "X": 0,
+      "Y": 0,
+      "Z": -2,
+      "Lidar1": {
+        "SensorType": 6,
+        "Enabled": true,
+        "Range":  1
+      }
+    }
+  }
+}
