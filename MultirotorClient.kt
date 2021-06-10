@@ -32,6 +32,7 @@ interface MultirotorClientInterface : RpcLibClientBase {
                           drivetrainType: DrivetrainType = DrivetrainType.MAX_DEGREE_OF_FREEDOM, yawMode: YawMode = YawMode(),
                           vehicleName: String = ""): Future<Void>
     fun rotateToYawAsync(yaw: Float, timeoutSec: Float = Float.MAX_VALUE, margin: Float = 5.0f, vehicleName: String = "")
+	fun rotateToYaw(yaw: Float, timeoutSec: Float = Float.MAX_VALUE, margin: Float = 5.0f, vehicleName: String = "")
     fun rotateByYawRateAsync(yawRate: Float, duration: Float, vehicleName: String = "")
 	fun rotateByYawRate(yawRate: Float, duration: Float, vehicleName: String = "")
     fun hoverAsync(vehicleName: String): Future<Void>
