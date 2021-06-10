@@ -1,9 +1,12 @@
 package io.sarl.airsim.behaviors.target
 
+import fr.utbm.airsim.api.LidarData
 import fr.utbm.airsim.api.Pose
 import io.sarl.airsim.influences.MoveByVelocity
+import io.sarl.airsim.influences.RotateByYawRate
 import io.sarl.airsim.influences.Takeoff
 import io.sarl.airsim.math.Vector3
+import io.sarl.airsim.perceptions.LidarDataPerception
 import io.sarl.airsim.perceptions.sim.SimPosePerception
 import io.sarl.airsim.simulation.events.SimulationInitialized
 import io.sarl.core.DefaultContextInteractions
@@ -22,16 +25,21 @@ behavior ReachLocationWithObstacleAvoidance {
 	protected var position : Pose = null
 	protected var speed : Vector3 = null
 	protected var targetlocation : Vector3 = null
+	protected var lidarData : LidarData = null
+	var initialized = false
 
 	//For loop behavior when the simulation starts
 	on SimulationInitialized {
 		emit(new Takeoff) //Emit takeoff event to notify the SimulationControllerAgent
 		
+		initialized = true
+		
 		in(5000) [ //Initial delay before starting
 			every(1000) [ //Period at which we reevaluate the drone actions
-				val movementForce : Vector3 = new Vector3(0f,0f,1f) //Create a force vector for the movement
+				val movementForce : Vector3 = computeForce() // Create a force vector for the movement
 				
 				emit(new MoveByVelocity(movementForce.getX(), movementForce.getY(), movementForce.getZ(), 1f))
+				emit(new RotateByYawRate(20f, 1f))
 			]
 		]
 		
@@ -42,7 +50,19 @@ behavior ReachLocationWithObstacleAvoidance {
 		val positionPerceived : Pose = occurrence.pose //We retrieve the position perceived from Airsim
 		this.position = positionPerceived
 	}
-	
-	
-	
+
+	on LidarDataPerception [initialized] {
+		this.lidarData = occurrence.lidarData
+	}
+
+	def computeForce() : Vector3 {
+		var result : Vector3 = new Vector3
+		if (lidarData === null) {
+			result = new Vector3(20f, 0f, -10f) 		// Create a force vector for the movement
+		}
+		else {
+			lidarData.pointCloud.clear
+		}
+		return result
+	}
 }
