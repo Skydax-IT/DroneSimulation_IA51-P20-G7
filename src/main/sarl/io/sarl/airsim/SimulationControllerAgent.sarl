@@ -54,7 +54,7 @@ agent SimulationControllerAgent {
 	/** The simulation step */
 	val simulationStepMs = 200.0f
 
-	val pool = newLinkedList("S0") //,"S1","S2","S3","S4","S5","S6","S7","S8","S9"
+	val pool = newLinkedList("S0")
 	val affectationStrategy =
 			new FcfsFixedSizePoolAllocationStrategy([|
 				val pool = pool
@@ -164,7 +164,7 @@ agent SimulationControllerAgent {
 		debug("RotateByYawRate (begin)")
 		val body = affectationStrategy.affectOrGetBody(occurrence.source, [a, n|onAffectation(a, n)])
 		influenceReactionStrategy.influenceReceived(occurrence.source) [
-			body.rotateByYawRate(occurrence.rot,occurrence.duration)
+			body.rotateByYawRate(occurrence.rot, occurrence.duration)
 		]
 		debug("RotateByYawRate (end)")
 	}

@@ -3,20 +3,18 @@
  */
 package io.sarl.airsim.behaviors.target
 
-import io.sarl.airsim.filters.mean.Vector3MeanFilter
 import io.sarl.airsim.influences.MoveByVelocity
 import io.sarl.airsim.influences.Takeoff
 import io.sarl.airsim.math.Vector3
 import io.sarl.airsim.math.Vector4
-import io.sarl.airsim.perceptions.LidarDataPerception
-import io.sarl.airsim.perceptions.sim.SimGroundTruthKinematicsPerception
 import io.sarl.airsim.perceptions.sim.SimPosePerception
-import io.sarl.airsim.simulation.events.SimulationInitialized
 import io.sarl.core.DefaultContextInteractions
 import io.sarl.core.Initialize
 import io.sarl.core.Logging
 import io.sarl.core.Schedules
-import fr.utbm.airsim.api.LidarData
+import io.sarl.airsim.filters.mean.Vector3MeanFilter
+import io.sarl.airsim.simulation.events.SimulationInitialized
+import io.sarl.airsim.perceptions.sim.SimGroundTruthKinematicsPerception
 
 /** 
  * Drone behavior: defines a target point (the opposite of the start point) and try to reach this target
@@ -40,8 +38,6 @@ behavior ReachTargetPoint3D extends AbstractReachTargetPoint {
 	val zOffset = -2.5f
 	
 	val meanFilter = new Vector3MeanFilter(6)
-	
-	var lidarData : LidarData = new LidarData
 
 	on Initialize {
 		//
@@ -73,9 +69,7 @@ behavior ReachTargetPoint3D extends AbstractReachTargetPoint {
 //		}
 //	}
 
-	on LidarDataPerception [initialized] {
-		this.lidarData = occurrence.lidarData
-	}
+	
 	
 	def initialize {
 		info("Drone agent is starting...")

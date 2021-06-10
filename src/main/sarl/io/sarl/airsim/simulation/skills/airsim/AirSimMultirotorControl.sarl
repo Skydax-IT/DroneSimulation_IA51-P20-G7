@@ -61,8 +61,7 @@ skill AirSimMultirotorControl implements MultirotorSimulationControlCapacity {
 
 	override rotateByYawRate(vehicleName : String, yawRate : Float, duration : Float) {
 		synchronized (this.rpcLibClient) {
-			// rpcLibClient.rotateByYawRateAsync(yawRate, duration, vehicleName)
-			rpcLibClient.rotateByYawRate(yawRate, duration, vehicleName)
+			rpcLibClient.rotateByYawRateAsync(yawRate, duration, vehicleName)	
 		}
 	}
 
