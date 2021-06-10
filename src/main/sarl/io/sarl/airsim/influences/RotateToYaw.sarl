@@ -1,0 +1,12 @@
+/** 
+ * 
+ */
+package io.sarl.airsim.influences
+
+event RotateToYaw {
+	val rot : Float
+
+	new(rot : Float) {
+		this.rot = rot
+	}
+}

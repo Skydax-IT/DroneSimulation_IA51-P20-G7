@@ -3,7 +3,7 @@ package io.sarl.airsim.behaviors.target
 import fr.utbm.airsim.api.LidarData
 import fr.utbm.airsim.api.Pose
 import io.sarl.airsim.influences.MoveByVelocity
-import io.sarl.airsim.influences.RotateByYawRate
+import io.sarl.airsim.influences.RotateToYaw
 import io.sarl.airsim.influences.Takeoff
 import io.sarl.airsim.math.Vector3
 import io.sarl.airsim.perceptions.LidarDataPerception
@@ -34,12 +34,13 @@ behavior ReachLocationWithObstacleAvoidance {
 		
 		initialized = true
 		
-		in(5000) [ //Initial delay before starting
+		in(5000) [ // Initial delay before starting
+			emit(new RotateToYaw(180f))
+			
 			every(1000) [ //Period at which we reevaluate the drone actions
 				val movementForce : Vector3 = computeForce() // Create a force vector for the movement
 				
 				emit(new MoveByVelocity(movementForce.getX(), movementForce.getY(), movementForce.getZ(), 1f))
-				emit(new RotateByYawRate(20f, 1f))
 			]
 		]
 		
@@ -58,7 +59,7 @@ behavior ReachLocationWithObstacleAvoidance {
 	def computeForce() : Vector3 {
 		var result : Vector3 = new Vector3
 		if (lidarData === null) {
-			result = new Vector3(20f, 0f, -10f) 		// Create a force vector for the movement
+			result = new Vector3(-20f, 0f, -10f) 		// Create a force vector for the movement
 		}
 		else {
 			lidarData.pointCloud.clear
