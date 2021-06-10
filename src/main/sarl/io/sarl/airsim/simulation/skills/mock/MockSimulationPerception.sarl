@@ -5,6 +5,7 @@ package io.sarl.airsim.simulation.skills.mock
 
 import fr.utbm.airsim.api.CollisionInfo
 import fr.utbm.airsim.api.KinematicsState
+import fr.utbm.airsim.api.LidarData
 import fr.utbm.airsim.api.Pose
 import io.sarl.airsim.simulation.capacities.SimulationPerceptionCapacity
 
@@ -26,6 +27,10 @@ skill MockSimulationPerception implements SimulationPerceptionCapacity {
 	
 	def simGetGroundTruthKinematics(vehicleName : String) : KinematicsState {
 		return new KinematicsState()
+	}
+
+	def getLidarData(vehicleName : String) : LidarData {
+		return new LidarData()
 	}
 	
 }

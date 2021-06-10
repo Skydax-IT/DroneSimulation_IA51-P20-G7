@@ -26,5 +26,4 @@ skill AirSimMultirotorSimulationPerception implements MultirotorSimulationPercep
 			return this.rpcLibClient.getMultirotorState(vehicleName)
 		}
 	}
-	
 }

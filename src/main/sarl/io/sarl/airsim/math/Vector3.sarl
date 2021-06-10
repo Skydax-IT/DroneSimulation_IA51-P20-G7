@@ -33,6 +33,10 @@ class Vector3 implements Vector<Vector3> {
 		this(v.x, v.y, v.z)
 	}
 
+	new (v : Vector3) {
+		this(v.x, v.y, v.z)
+	}
+
 	/** 
 	 * Builds a vector with the given parameters
 	 * @param x the X coordinate

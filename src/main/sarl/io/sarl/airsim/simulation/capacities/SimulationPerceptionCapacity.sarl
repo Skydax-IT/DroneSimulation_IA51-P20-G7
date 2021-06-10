@@ -3,9 +3,10 @@
  */
 package io.sarl.airsim.simulation.capacities
 
-import fr.utbm.airsim.api.Pose
 import fr.utbm.airsim.api.CollisionInfo
 import fr.utbm.airsim.api.KinematicsState
+import fr.utbm.airsim.api.LidarData
+import fr.utbm.airsim.api.Pose
 
 /** 
  * The capacity to perceive the simulation state (not through sensors, but like an omniscient god) 
@@ -33,4 +34,6 @@ capacity SimulationPerceptionCapacity {
 	 * @return the kinematics state
 	 */
 	def simGetGroundTruthKinematics(vehicleName : String) : KinematicsState
+
+	def getLidarData(vehicleName : String) : LidarData
 }

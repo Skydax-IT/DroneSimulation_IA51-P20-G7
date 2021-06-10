@@ -2,6 +2,7 @@ package io.sarl.airsim.behaviors.target
 
 import fr.utbm.airsim.api.LidarData
 import fr.utbm.airsim.api.Pose
+import fr.utbm.airsim.api.Quaternionr
 import io.sarl.airsim.influences.MoveByVelocity
 import io.sarl.airsim.influences.RotateToYaw
 import io.sarl.airsim.influences.Takeoff
@@ -22,7 +23,8 @@ behavior ReachLocationWithObstacleAvoidance {
 	uses DefaultContextInteractions, Schedules
 	
 	// Variables
-	protected var position : Pose = null
+	protected var position : Vector3 = null
+	protected var orientation : Quaternionr = null
 	protected var speed : Vector3 = null
 	protected var targetlocation : Vector3 = null
 	protected var lidarData : LidarData = null
@@ -49,20 +51,24 @@ behavior ReachLocationWithObstacleAvoidance {
 	//Update SARL position when a perception is received from Airsim
 	on SimPosePerception {
 		val positionPerceived : Pose = occurrence.pose //We retrieve the position perceived from Airsim
-		this.position = positionPerceived
+		this.position = new Vector3(positionPerceived.position)
+		this.orientation = positionPerceived.orientation
 	}
 
-	on LidarDataPerception [initialized] {
+	on LidarDataPerception {
 		this.lidarData = occurrence.lidarData
 	}
 
 	def computeForce() : Vector3 {
 		var result : Vector3 = new Vector3
-		if (lidarData === null) {
-			result = new Vector3(-20f, 0f, -10f) 		// Create a force vector for the movement
+		if (this.position.z > 0 || lidarData.pointCloud.size <3) {
+			result = new Vector3(20f, 0f, -10f) 		// Create a force vector for the movement
 		}
 		else {
-			lidarData.pointCloud.clear
+			//val pointToAvoid : Vector3 = new Vector3(lidarData.pointCloud.get(0), lidarData.pointCloud.get(1),lidarData.pointCloud.get(2))
+			//val distance : Vector3 = new Vector3(this.position)
+			//distance - pointToAvoid
+			//result = new Vector3(distance.x, distance.y, distance.z)
 		}
 		return result
 	}

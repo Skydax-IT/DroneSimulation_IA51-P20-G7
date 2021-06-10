@@ -3,11 +3,13 @@
  */
 package io.sarl.airsim
 
+import fr.utbm.airsim.api.LidarData
 import fr.utbm.airsim.api.MultirotorClientInterface
 import io.sarl.airsim.influences.MoveByVelocity
 import io.sarl.airsim.influences.RotateByYawRate
 import io.sarl.airsim.influences.RotateToYaw
 import io.sarl.airsim.influences.Takeoff
+import io.sarl.airsim.perceptions.LidarDataPerception
 import io.sarl.airsim.perceptions.MultirotorStatePerception
 import io.sarl.airsim.perceptions.sim.SimGroundTruthKinematicsPerception
 import io.sarl.airsim.perceptions.sim.SimPosePerception
@@ -184,9 +186,11 @@ agent SimulationControllerAgent {
 		val state = name.multirotorState
 		val pose = name.simGetObjectPose
 		val kinematics = name.simGetGroundTruthKinematics
+		val lidar : LidarData = name.getLidarData
 
 		influenceReactionStrategy.perceptionReceived(address) [
 			emit(new MultirotorStatePerception(state))[it == address]
+			emit(new LidarDataPerception(lidar))[it == address]
 			emit(new SimPosePerception(pose))[it == address]
 			emit(new SimGroundTruthKinematicsPerception(kinematics))[it == address]
 		]

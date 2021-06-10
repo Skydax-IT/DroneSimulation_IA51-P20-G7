@@ -17,6 +17,5 @@ capacity MultirotorSimulationPerceptionCapacity {
 	 * @param vehicleName the name of the vehicle
 	 * @return the state of the vehicle
 	 */
-	def getMultirotorState(vehicleName : String) : MultirotorState
-	
+	def getMultirotorState(vehicleName : String) : MultirotorState	
 }
