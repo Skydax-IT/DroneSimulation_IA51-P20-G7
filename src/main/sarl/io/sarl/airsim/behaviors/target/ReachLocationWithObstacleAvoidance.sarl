@@ -12,6 +12,7 @@ import io.sarl.airsim.perceptions.sim.SimGroundTruthKinematicsPerception
 import io.sarl.airsim.perceptions.sim.SimPosePerception
 import io.sarl.airsim.simulation.events.SimulationInitialized
 import io.sarl.core.DefaultContextInteractions
+import io.sarl.core.Logging
 import io.sarl.core.Schedules
 
 /** 
@@ -21,7 +22,7 @@ import io.sarl.core.Schedules
 
 behavior ReachLocationWithObstacleAvoidance {
 	
-	uses DefaultContextInteractions, Schedules
+	uses Logging, DefaultContextInteractions, Schedules
 	
 	// Variables
 	protected var position : Vector3 = null
@@ -70,14 +71,17 @@ behavior ReachLocationWithObstacleAvoidance {
 	//Function that computes the force the move the drone
 	def computeForce() : Vector3 {
 		var result : Vector3 = new Vector3
-		if (this.position.z > 0 || lidarData.pointCloud.size <3) {
+		info("Ma position :" + this.position.x + ", " + this.position.y + ", " + this.position.z)
+		if (this.position.z < 0 || lidarData.pointCloud.size < 3) {
+			info("J'avance")
 			result = new Vector3(20f, 0f, -10f) 		// Create a force vector for the movement
 		}
 		else {
+			info("J'ai un obstacle à éviter")
 			var pointToAvoid : Vector3 = new Vector3(lidarData.pointCloud.get(0), lidarData.pointCloud.get(1),lidarData.pointCloud.get(2))
 			var distance : Vector3 = new Vector3()
 			distance = pointToAvoid-this.position
-			result = new Vector3(distance.x, distance.y, distance.z)
+			result = new Vector3(distance.x, distance.y, -10f)
 		}
 		return result
 	}
