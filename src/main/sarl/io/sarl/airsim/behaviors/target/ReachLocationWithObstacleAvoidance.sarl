@@ -39,6 +39,7 @@ behavior ReachLocationWithObstacleAvoidance {
 		initialized = true
 		
 		in(5000) [ // Initial delay before starting
+			info("Je tourne")
 			emit(new RotateToYaw(180f)) //Initial rotation to face the wall
 			
 			every(1000) [ //Period at which we reevaluate the drone actions
@@ -71,17 +72,20 @@ behavior ReachLocationWithObstacleAvoidance {
 	//Function that computes the force the move the drone
 	def computeForce() : Vector3 {
 		var result : Vector3 = new Vector3
-		info("Ma position :" + this.position.x + ", " + this.position.y + ", " + this.position.z)
-		if (this.position.z < 0 || lidarData.pointCloud.size < 3) {
+		val position : Vector3 = new Vector3(this.position)
+		info("Ma position :" + position.x + ", " + position.y + ", " + position.z)
+		if (position.z > -2 || lidarData.pointCloud.size < 3) {
 			info("J'avance")
 			result = new Vector3(20f, 0f, -10f) 		// Create a force vector for the movement
 		}
 		else {
 			info("J'ai un obstacle à éviter")
-			var pointToAvoid : Vector3 = new Vector3(lidarData.pointCloud.get(0), lidarData.pointCloud.get(1),lidarData.pointCloud.get(2))
+			val lidarPointCloud : float[] = lidarData.pointCloud
+			val pointToAvoid : Vector3 = new Vector3(lidarData.pointCloud.get(0), lidarData.pointCloud.get(1),lidarData.pointCloud.get(2))
 			var distance : Vector3 = new Vector3()
-			distance = pointToAvoid-this.position
+			distance = pointToAvoid-position
 			result = new Vector3(distance.x, distance.y, -10f)
+			this.lidarData = null //To not recompute old LidarData
 		}
 		return result
 	}
