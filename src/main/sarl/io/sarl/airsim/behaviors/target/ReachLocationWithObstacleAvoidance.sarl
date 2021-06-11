@@ -8,6 +8,7 @@ import io.sarl.airsim.influences.RotateToYaw
 import io.sarl.airsim.influences.Takeoff
 import io.sarl.airsim.math.Vector3
 import io.sarl.airsim.perceptions.LidarDataPerception
+import io.sarl.airsim.perceptions.sim.SimGroundTruthKinematicsPerception
 import io.sarl.airsim.perceptions.sim.SimPosePerception
 import io.sarl.airsim.simulation.events.SimulationInitialized
 import io.sarl.core.DefaultContextInteractions
@@ -37,7 +38,7 @@ behavior ReachLocationWithObstacleAvoidance {
 		initialized = true
 		
 		in(5000) [ // Initial delay before starting
-			emit(new RotateToYaw(180f))
+			emit(new RotateToYaw(180f)) //Initial rotation to face the wall
 			
 			every(1000) [ //Period at which we reevaluate the drone actions
 				val movementForce : Vector3 = computeForce() // Create a force vector for the movement
@@ -48,27 +49,35 @@ behavior ReachLocationWithObstacleAvoidance {
 		
 	}
 	
-	//Update SARL position when a perception is received from Airsim
+	//Update SARL position and orientation when a PosePerception is received from Airsim
 	on SimPosePerception {
 		val positionPerceived : Pose = occurrence.pose //We retrieve the position perceived from Airsim
 		this.position = new Vector3(positionPerceived.position)
 		this.orientation = positionPerceived.orientation
 	}
 
+	//Update SARL velocity when a KinematicsPerception is received from Airsim
+	on SimGroundTruthKinematicsPerception {
+		val velocity : Vector3 = new Vector3(occurrence.state.linearVelocity)
+		this.speed = velocity
+	}
+
+	// Update SARL LidarData when a LidarDataPerception is received from Airsim
 	on LidarDataPerception {
 		this.lidarData = occurrence.lidarData
 	}
 
+	//Function that computes the force the move the drone
 	def computeForce() : Vector3 {
 		var result : Vector3 = new Vector3
 		if (this.position.z > 0 || lidarData.pointCloud.size <3) {
 			result = new Vector3(20f, 0f, -10f) 		// Create a force vector for the movement
 		}
 		else {
-			//val pointToAvoid : Vector3 = new Vector3(lidarData.pointCloud.get(0), lidarData.pointCloud.get(1),lidarData.pointCloud.get(2))
-			//val distance : Vector3 = new Vector3(this.position)
-			//distance - pointToAvoid
-			//result = new Vector3(distance.x, distance.y, distance.z)
+			var pointToAvoid : Vector3 = new Vector3(lidarData.pointCloud.get(0), lidarData.pointCloud.get(1),lidarData.pointCloud.get(2))
+			var distance : Vector3 = new Vector3()
+			distance = pointToAvoid-this.position
+			result = new Vector3(distance.x, distance.y, distance.z)
 		}
 		return result
 	}

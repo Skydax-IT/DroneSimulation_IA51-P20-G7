@@ -184,17 +184,17 @@ behavior ReachTargetPoint3DWithObstacleAvoidance extends AbstractReachTargetPoin
 				val b0 = otherPosition
 				val va = new Vector4(selfDirection.getX(), selfDirection.getY(), selfDirection.getZ(), 1.0f)
 				val vb = new Vector4(otherDirection.getX(), otherDirection.getY(), otherDirection.getZ(), 1.0f)
-				val a = va.squaredNorm()
-				val b = va.dot(vb)
-				val c = vb.squaredNorm()
-				val w0 = (a0 - b0)
-				val _d = va.dot(w0)
-				val e = vb.dot(w0)
+				val a = va.squaredNorm() //Norme du quaternion de notre vitesse
+				val b = va.dot(vb) //Produit scalaire notre vitesse avec celle de l'autre
+				val c = vb.squaredNorm() //Norme du quaternion de la vitesse de l'autre
+				val w0 = (a0 - b0) //Vecteur Distance : AutrePosition>NotrePosition
+				val _d = va.dot(w0) //Produit scalaire notre vitesse et vecteur distance
+				val e = vb.dot(w0) //Produit scalaire vitesse autre et vecteur distance
 				
-				val e1 = a0 - b0
-				val e2 = va * (b * e - c * _d) - vb * (a * e - b * _d)
-				val e3 = (a * c - b * b)
-				var d = (e1 + e2 * (1.0f / e3)).norm()
+				val e1 = a0 - b0 //Vecteur distance une 2ème fois ?
+				val e2 = va * (b * e - c * _d) - vb * (a * e - b * _d) //NotreVitesse*(ProdNotVitAutreVit * ProdAutreVitDistance - NormeVitesseAutre * ProdNotreVitVecteurDistance) - AutreVit*(NormeNotreVit*ProdVitAutreDistance - ProdNotreVitAutreVit*ProtNotreVitDistance)
+				val e3 = (a * c - b * b) //NormeNotreVit * NormeAutreVit - ProdNotreVitAutreVit^2
+				var d = (e1 + e2 * (1.0f / e3)).norm() //VecteurDistance + e2/e3
 
 				if(Double.isNaN(d)) {
 					// If d is NaN it means that the direction are colinear
