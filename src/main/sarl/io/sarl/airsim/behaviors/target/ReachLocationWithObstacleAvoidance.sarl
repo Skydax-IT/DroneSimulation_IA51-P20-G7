@@ -29,8 +29,9 @@ behavior ReachLocationWithObstacleAvoidance {
 	protected var orientation : Quaternionr = null
 	protected var speed : Vector3 = null
 	protected var targetlocation : Vector3 = null
-	protected var lidarData : LidarData = null
+	protected var lidarData : float[] = null
 	var initialized = false
+	val periodMs : int = 1000
 
 	//For loop behavior when the simulation starts
 	on SimulationInitialized {
@@ -42,10 +43,10 @@ behavior ReachLocationWithObstacleAvoidance {
 			info("Je tourne")
 			emit(new RotateToYaw(180f)) //Initial rotation to face the wall
 			
-			every(1000) [ //Period at which we reevaluate the drone actions
+			every(periodMs) [ //Period at which we reevaluate the drone actions
 				val movementForce : Vector3 = computeForce() // Create a force vector for the movement
 				
-				emit(new MoveByVelocity(movementForce.getX(), movementForce.getY(), movementForce.getZ(), 1f))
+				emit(new MoveByVelocity(movementForce.getX(), movementForce.getY(), movementForce.getZ(), periodMs/1000f))
 			]
 		]
 		
@@ -66,26 +67,30 @@ behavior ReachLocationWithObstacleAvoidance {
 
 	// Update SARL LidarData when a LidarDataPerception is received from Airsim
 	on LidarDataPerception {
-		this.lidarData = occurrence.lidarData
+		val lidarPointCloud : float[] = occurrence.lidarData.pointCloud
+		this.lidarData = lidarPointCloud
 	}
 
 	//Function that computes the force the move the drone
 	def computeForce() : Vector3 {
 		var result : Vector3 = new Vector3
 		val position : Vector3 = new Vector3(this.position)
-		info("Ma position :" + position.x + ", " + position.y + ", " + position.z)
-		if (position.z > -2 || lidarData.pointCloud.size < 3) {
+		val lidarPointCloud : float[] = this.lidarData
+		
+		info("Ma position : " + position.x + ", " + position.y + ", " + position.z)
+		if (position.z > -2 || lidarPointCloud.size < 3) {
 			info("J'avance")
-			result = new Vector3(20f, 0f, -10f) 		// Create a force vector for the movement
+			result = new Vector3(20f, 0f, -10f) // Create a force vector for the movement
 		}
 		else {
-			info("J'ai un obstacle à éviter")
-			val lidarPointCloud : float[] = lidarData.pointCloud
-			val pointToAvoid : Vector3 = new Vector3(lidarData.pointCloud.get(0), lidarData.pointCloud.get(1),lidarData.pointCloud.get(2))
+			info("J'ai un obstacle à éviter : " + lidarPointCloud.get(0) + ", " + lidarPointCloud.get(1) + ", " + lidarPointCloud.get(2))
+			
+			val pointToAvoid : Vector3 = new Vector3(lidarPointCloud.get(0), lidarPointCloud.get(1),lidarPointCloud.get(2))
 			var distance : Vector3 = new Vector3()
 			distance = pointToAvoid-position
-			result = new Vector3(distance.x, distance.y, -10f)
+			result = new Vector3(-5*distance.x, -5*distance.y, -10f)
 			this.lidarData = null //To not recompute old LidarData
+			info("J'evite l'obstacle avec une force : " + result.x + ", " + result.y + ", " + result.z)
 		}
 		return result
 	}
