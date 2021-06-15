@@ -28,6 +28,7 @@ behavior ReachLocationWithObstacleAvoidance {
 	val randomTargetLocationRange : float = 30f
 	val distanceError : float = 0.5f
 	val degreeError : float = 3f
+	val velocityScalingValue = 5f
 	
 	// Variables
 	protected var position : Vector3 = null
@@ -35,14 +36,10 @@ behavior ReachLocationWithObstacleAvoidance {
 	protected var speed : Vector3 = null
 	protected var targetlocation : Vector3 = null
 	protected var lidarData : float[] = null
-	var initialized = false //TODO Enlever ?
-	
 
 	//For loop behavior when the simulation starts
 	on SimulationInitialized {
 		emit(new Takeoff) //Emit takeoff event to notify the SimulationControllerAgent
-		
-		initialized = true
 		
 		in(5000) [ // Initial delay before starting
 			this.targetlocation = new Vector3(40f, 0f, 0f)
@@ -93,7 +90,7 @@ behavior ReachLocationWithObstacleAvoidance {
 		{
 			if(position.z < (1 - distanceError)) { //If we need to descend
 				info("I'm landing")
-				result = new Vector3(0f,0f,2f)
+				result = generateVelocity(0f,0f,1f)
 			}
 			else {
 				info("I'm arrived")
@@ -101,14 +98,15 @@ behavior ReachLocationWithObstacleAvoidance {
 		}
 		else if (position.z > -2) { //If we need to ascend
 			info("I ascend")
-			result = new Vector3(0f,0f,-10f)
+			result = generateVelocity(0f,0f,-1f)
 		}
 		else {
 			val pointToAvoid : Vector3 = computePointsToAvoid()
 			if ((pointToAvoid.x != 0f) || (pointToAvoid.y != 0f) || (pointToAvoid.z != 0f)) { // If we need to avoid an obstacle
 				var distance : Vector3 = new Vector3()
 				distance = pointToAvoid - position
-				result = new Vector3(-10 * distance.x, -10 * distance.y, -10*distance.z) // TODO Coef, z ?
+				var velocity : Vector3 = generateVelocity(distance.x,distance.y,distance.z)
+				result = new Vector3(-2f * velocity.x, -2f * velocity.y, -0.5f * velocity.z) //We want to go the opposite direction fast and diminish the z influence
 				info("I avoid the obstacle with a force : " + result.x + ", " + result.y + ", " + result.z)
 			}
 			else {
@@ -118,7 +116,7 @@ behavior ReachLocationWithObstacleAvoidance {
 
 				if (((orientationz < (angletohave + degreeError)) && (orientationz > (angletohave - degreeError)))) { // If we are in line with the target we move forward
 					info("I move in direction of the target location")
-					result = new Vector3(distance.x / 3, distance.y / 3, 0f) 	// TODO Coef ?
+					result = generateVelocity(distance.x, distance.y, 0f)
 				} 
 				else { // Else we rotate to be in line with the target
 					info("I rotate of to be in line with the target location : " + angletohave)
@@ -145,6 +143,12 @@ behavior ReachLocationWithObstacleAvoidance {
 			this.lidarData = null // To not recompute old LidarData
 			result = pointToAvoid
 		}
+		return result
+	}
+	
+	def generateVelocity(x : float,y : float, z : float) : Vector3 { //This function is used to generate a scaled velocity value from a distance to a point
+		val sum : float = Math.abs(x) + Math.abs(y) + Math.abs(z)
+		val result : Vector3 = new Vector3((x/sum)*this.velocityScalingValue,(y/sum)*this.velocityScalingValue,(z/sum)*this.velocityScalingValue)
 		return result
 	}
 }
