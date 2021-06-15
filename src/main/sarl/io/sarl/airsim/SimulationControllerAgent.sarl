@@ -163,23 +163,23 @@ agent SimulationControllerAgent {
 		debug("MoveByVelocity (end)")
 	}
 
-	on RotateByYawRate {
-		debug("RotateByYawRate (begin)")
-		val body = affectationStrategy.affectOrGetBody(occurrence.source, [a, n|onAffectation(a, n)])
-		influenceReactionStrategy.influenceReceived(occurrence.source) [
-			body.rotateByYawRate(occurrence.rot,occurrence.duration)
-		]
-		debug("RotateByYawRate (end)")
-	}
-
 	on RotateToYaw {
 		debug("RotateToYaw (begin)")
 		val body = affectationStrategy.affectOrGetBody(occurrence.source, [a, n|onAffectation(a, n)])
 		influenceReactionStrategy.influenceReceived(occurrence.source) [
 			body.rotateToYaw(occurrence.rot)
 		]
-		debug("RotateByYawRate (end)")
+		debug("RotateToYaw (end)")
 	}
+
+//	on RotateByYawRate {
+//		debug("RotateByYawRate (begin)")
+//		val body = affectationStrategy.affectOrGetBody(occurrence.source, [a, n|onAffectation(a, n)])
+//		influenceReactionStrategy.influenceReceived(occurrence.source) [
+//			body.rotateByYawRate(occurrence.rot, occurrence.duration)
+//		]
+//		debug("RotateByYawRate (end)")
+//	}
 	
 	/** Retrieve the perceptions for a single agent */
 	private def retrieveAgentPerceptions(address : Address, name: String) {
