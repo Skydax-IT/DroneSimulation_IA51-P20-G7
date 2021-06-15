@@ -45,8 +45,8 @@ behavior ReachLocationWithObstacleAvoidance {
 		initialized = true
 		
 		in(5000) [ // Initial delay before starting
-			//this.targetlocation = new Vector3(20f, -20f, 0f)
-			this.targetlocation = new Vector3((Math.random() * randomTargetLocationRange) as float, (Math.random() * randomTargetLocationRange) as float,0f) //We generate a random location
+			this.targetlocation = new Vector3(40f, 0f, 0f)
+			//this.targetlocation = new Vector3((Math.random() * randomTargetLocationRange) as float, (Math.random() * randomTargetLocationRange) as float,0f) //We generate a random location
 			info("My target location is : " + this.targetlocation.x + ", " + this.targetlocation.y + ", 0")
 			
 			every(periodMs) [ //Period at which we reevaluate the drone actions
@@ -83,7 +83,6 @@ behavior ReachLocationWithObstacleAvoidance {
 		//We copy the variables to avoid problems with parallel execution
 		var result : Vector3 = new Vector3
 		val position : Vector3 = new Vector3(this.position)
-		val lidarPointCloud : float[] = this.lidarData
 		val orientationz : float = Math.toDegrees(this.orientation.z as double)as float
 
 		info("My position : " + position.x + ", " + position.y + ", " + position.z + ". My orientation : " + orientationz)
@@ -104,29 +103,47 @@ behavior ReachLocationWithObstacleAvoidance {
 			info("I ascend")
 			result = new Vector3(0f,0f,-10f)
 		}
-		else if (lidarPointCloud.size >= 3) { //If we need to avoid an obstacle
-			val pointToAvoid : Vector3 = new Vector3(lidarPointCloud.get(0), lidarPointCloud.get(1),lidarPointCloud.get(2))
-			info("I've go an obstacle to avoid : " + pointToAvoid.x + ", " + pointToAvoid.y + ", " + pointToAvoid.z)
-			
-			var distance : Vector3 = new Vector3()
-			distance = pointToAvoid-position
-			result = new Vector3(-10*distance.x, -10*distance.y, 0f) //TODO Coef, z ?
-			this.lidarData = null //To not recompute old LidarData
-			info("I avoid the obstacle with a force : " + result.x + ", " + result.y + ", " + result.z)
-		}
 		else {
-			var distance : Vector3 = new Vector3()
-			distance = this.targetlocation - position
-			var angletohave : float = Math.toDegrees(Math.atan2(-distance.y as double, -distance.x as double)) as float
-			
-			if (((orientationz < (angletohave + degreeError)) && (orientationz > (angletohave - degreeError)))) { // If we are in line with the target we move forward
-				info("I move in direction of the target location")
-				result = new Vector3(distance.x / 3, distance.y / 3, 0f) 		// TODO Coef ?
+			val pointToAvoid : Vector3 = computePointsToAvoid()
+			if ((pointToAvoid.x != 0f) || (pointToAvoid.y != 0f) || (pointToAvoid.z != 0f)) { // If we need to avoid an obstacle
+				var distance : Vector3 = new Vector3()
+				distance = pointToAvoid - position
+				result = new Vector3(-10 * distance.x, -10 * distance.y, -10*distance.z) // TODO Coef, z ?
+				info("I avoid the obstacle with a force : " + result.x + ", " + result.y + ", " + result.z)
 			}
-			else { // Else we rotate to be in line with the target
-				info("I rotate of to be in line with the target location : " + angletohave)
-				emit(new RotateToYaw(angletohave))
+			else {
+				var distance : Vector3 = new Vector3()
+				distance = this.targetlocation - position
+				var angletohave : float = Math.toDegrees(Math.atan2(-distance.y as double, -distance.x as double)) as float
+
+				if (((orientationz < (angletohave + degreeError)) && (orientationz > (angletohave - degreeError)))) { // If we are in line with the target we move forward
+					info("I move in direction of the target location")
+					result = new Vector3(distance.x / 3, distance.y / 3, 0f) 	// TODO Coef ?
+				} 
+				else { // Else we rotate to be in line with the target
+					info("I rotate of to be in line with the target location : " + angletohave)
+					emit(new RotateToYaw(angletohave))
+				}
 			}
+		}
+		return result
+	}
+
+	def computePointsToAvoid() : Vector3 {
+		var result : Vector3 = new Vector3(0f, 0f, 0f)
+		
+		val lidarPointCloud : float[] = this.lidarData
+		var lidarSize : int = lidarPointCloud.size
+		if (lidarSize >= 3) { // If we detected an obstacle with lidar
+			var meanPoint : float[] = #[lidarPointCloud.get(0),lidarPointCloud.get(1),lidarPointCloud.get(2)]
+			for (var i = 3;i<lidarSize;i++) { //We compute the mean of all the points detected
+				meanPoint.set(i%3,meanPoint.get(i%3)+lidarPointCloud.get(i))
+			}
+			lidarSize = lidarSize/3
+			val pointToAvoid : Vector3 = new Vector3(meanPoint.get(0)/lidarSize, meanPoint.get(1)/lidarSize, meanPoint.get(2)/lidarSize)
+			info("I've go an obstacle to avoid : " + pointToAvoid.x + ", " + pointToAvoid.y + ", " + pointToAvoid.z)
+			this.lidarData = null // To not recompute old LidarData
+			result = pointToAvoid
 		}
 		return result
 	}
