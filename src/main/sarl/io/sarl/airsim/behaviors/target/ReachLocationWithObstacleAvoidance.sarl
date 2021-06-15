@@ -45,8 +45,8 @@ behavior ReachLocationWithObstacleAvoidance {
 		initialized = true
 		
 		in(5000) [ // Initial delay before starting
-			//this.targetlocation = new Vector3(-30f,-30f,0f)
-			this.targetlocation = new Vector3((Math.random() * randomTargetLocationRange) as float, (Math.random() * randomTargetLocationRange) as float,0f) //We generate a random location
+			this.targetlocation = new Vector3(20f, 0f, 0f)
+			//this.targetlocation = new Vector3((Math.random() * randomTargetLocationRange) as float, (Math.random() * randomTargetLocationRange) as float,0f) //We generate a random location
 			info("My target location is : " + this.targetlocation.x + ", " + this.targetlocation.y + ", 0")
 			
 			every(periodMs) [ //Period at which we reevaluate the drone actions
@@ -84,7 +84,7 @@ behavior ReachLocationWithObstacleAvoidance {
 		var result : Vector3 = new Vector3
 		val position : Vector3 = new Vector3(this.position)
 		val lidarPointCloud : float[] = this.lidarData
-		val orientationz : float = this.orientation.z
+		val orientationz : float = Math.toDegrees(this.orientation.z as double) as float
 
 		info("My position : " + position.x + ", " + position.y + ", " + position.z + ". My orientation : " + orientationz)
 		if ((position.x < (this.targetlocation.x + distanceError)) && //Test if we reached the target location
@@ -117,14 +117,21 @@ behavior ReachLocationWithObstacleAvoidance {
 		else {
 			var distance : Vector3 = new Vector3()
 			distance = this.targetlocation - position
-			val angletohave : float = ((Math.atan((-distance.y / distance.x) as double))) as float
+			var angletohave : float = Math.toDegrees((Math.atan((distance.y / distance.x) as double))) as float
+			if (distance.x >= 0) {
+				if (distance.y < 0)
+					angletohave += 180
+				else
+					angletohave -= 180
+			}
+			
 			if (((orientationz < (angletohave + degreeError)) && (orientationz > (angletohave - degreeError)))) { // If we are in line with the target we move forward
 				info("I move in direction of the target location")
-				result = new Vector3(distance.x / 5, distance.y / 5, 0f) 		// TODO Coef ?
+				result = new Vector3(distance.x / 3, distance.y / 3, 0f) 		// TODO Coef ?
 			}
 			else { // Else we rotate to be in line with the target
 				info("I rotate of to be in line with the target location : " + angletohave)
-				emit(new RotateToYaw(Math.toDegrees(angletohave)as float))
+				emit(new RotateToYaw(angletohave))
 			}
 		}
 		return result
