@@ -100,7 +100,7 @@ class Vector4 implements Vector<Vector4> {
 		val t3 : Float = 2.0f * (this.t*this.z + this.x*this.y)
 		val t4 : Float = 1.0f - 2.0f * (this.y*this.y + this.z*this.z)
 		//val yaw : Float = Math.toDegrees(Math.atan((t3 / t4) as double)) as Float
-		val yaw : Float = (Math.atan((t3 / t4) as double)) as Float
+		val yaw : Float = Math.atan2(t3 as double, t4 as double) as Float
 		
 		return new Vector3(pitch,roll,yaw)
 	}
