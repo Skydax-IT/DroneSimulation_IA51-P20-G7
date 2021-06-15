@@ -27,7 +27,7 @@ behavior ReachLocationWithObstacleAvoidance {
 	val periodMs : int = 1000
 	val randomTargetLocationRange : float = 30f
 	val distanceError : float = 0.5f
-	val degreeError : float = 10f //TODO Resoudre decalage
+	val degreeError : float = 3f
 	
 	// Variables
 	protected var position : Vector3 = null
@@ -62,7 +62,7 @@ behavior ReachLocationWithObstacleAvoidance {
 	on SimPosePerception {
 		val positionPerceived : Pose = occurrence.pose //We retrieve the position perceived from Airsim
 		this.position = new Vector3(positionPerceived.position)
-		this.orientationz = Math.toDegrees(2*positionPerceived.orientation.w) as float
+		this.orientationz = Math.toDegrees(positionPerceived.orientation.z) as float
 	}
 
 	//Update SARL velocity when a KinematicsPerception is received from Airsim
@@ -116,8 +116,8 @@ behavior ReachLocationWithObstacleAvoidance {
 		else {
 			var distance : Vector3 = new Vector3()
 			distance = this.targetlocation - position
-			var angletohave : float = (Math.toDegrees(Math.atan((distance.y / distance.x) as double))) as float
-			if (((orientationz < (-angletohave + degreeError)) && (orientationz > (-angletohave - degreeError)))) { // If we are in line with the target we move forward //TODO Revoir
+			var angletohave : float = Math.toDegrees((Math.atan((distance.y / distance.x) as double))) as float
+			if (((orientationz < (angletohave + degreeError)) && (orientationz > (angletohave - degreeError)))) { // If we are in line with the target we move forward //TODO Revoir
 				info("I move in direction of the target location")
 				result = new Vector3(distance.x / 3, distance.y / 3, 0f) 		// TODO Coef ?
 			}
