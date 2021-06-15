@@ -27,7 +27,7 @@ behavior ReachLocationWithObstacleAvoidance {
 	val periodMs : int = 1000
 	val randomTargetLocationRange : float = 30f
 	val distanceError : float = 0.5f
-	val degreeError : float = 0.5f
+	val degreeError : float = 0.6f
 	
 	// Variables
 	protected var position : Vector3 = null
@@ -45,7 +45,7 @@ behavior ReachLocationWithObstacleAvoidance {
 		initialized = true
 		
 		in(5000) [ // Initial delay before starting
-			//this.targetlocation = new Vector3(0f,-20f,0f)
+			//this.targetlocation = new Vector3(-30f,-30f,0f)
 			this.targetlocation = new Vector3((Math.random() * randomTargetLocationRange) as float, (Math.random() * randomTargetLocationRange) as float,0f) //We generate a random location
 			info("My target location is : " + this.targetlocation.x + ", " + this.targetlocation.y + ", 0")
 			
@@ -117,14 +117,14 @@ behavior ReachLocationWithObstacleAvoidance {
 		else {
 			var distance : Vector3 = new Vector3()
 			distance = this.targetlocation - position
-			val angletohave : float = ((Math.atan((distance.y / distance.x) as double))) as float
+			val angletohave : float = ((Math.atan((-distance.y / distance.x) as double))) as float
 			if (((orientationz < (angletohave + degreeError)) && (orientationz > (angletohave - degreeError)))) { // If we are in line with the target we move forward
 				info("I move in direction of the target location")
-				result = new Vector3(distance.x / 3, distance.y / 3, 0f) 		// TODO Coef ?
+				result = new Vector3(distance.x / 5, distance.y / 5, 0f) 		// TODO Coef ?
 			}
 			else { // Else we rotate to be in line with the target
-				info("I rotate of to be in line with the target location : " + angletohave as float)
-				emit(new RotateToYaw(-Math.toDegrees(angletohave)as float))
+				info("I rotate of to be in line with the target location : " + angletohave)
+				emit(new RotateToYaw(Math.toDegrees(angletohave)as float))
 			}
 		}
 		return result
