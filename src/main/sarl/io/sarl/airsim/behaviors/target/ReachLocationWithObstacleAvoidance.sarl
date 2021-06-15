@@ -1,11 +1,11 @@
 package io.sarl.airsim.behaviors.target
 
 import fr.utbm.airsim.api.Pose
-import fr.utbm.airsim.api.Quaternionr
 import io.sarl.airsim.influences.MoveByVelocity
 import io.sarl.airsim.influences.RotateToYaw
 import io.sarl.airsim.influences.Takeoff
 import io.sarl.airsim.math.Vector3
+import io.sarl.airsim.math.Vector4
 import io.sarl.airsim.perceptions.LidarDataPerception
 import io.sarl.airsim.perceptions.sim.SimGroundTruthKinematicsPerception
 import io.sarl.airsim.perceptions.sim.SimPosePerception
@@ -27,11 +27,11 @@ behavior ReachLocationWithObstacleAvoidance {
 	val periodMs : int = 1000
 	val randomTargetLocationRange : float = 30f
 	val distanceError : float = 0.5f
-	val degreeError : float = 3f
+	val degreeError : float = 0.5f
 	
 	// Variables
 	protected var position : Vector3 = null
-	protected var orientationz : float = 0
+	protected var orientation : Vector3 = null
 	protected var speed : Vector3 = null
 	protected var targetlocation : Vector3 = null
 	protected var lidarData : float[] = null
@@ -45,8 +45,8 @@ behavior ReachLocationWithObstacleAvoidance {
 		initialized = true
 		
 		in(5000) [ // Initial delay before starting
-			this.targetlocation = new Vector3(0f,-20f,0f)
-			//this.targetlocation = new Vector3((Math.random() * randomTargetLocationRange) as float, (Math.random() * randomTargetLocationRange) as float,0f) //We generate a random location
+			//this.targetlocation = new Vector3(0f,-20f,0f)
+			this.targetlocation = new Vector3((Math.random() * randomTargetLocationRange) as float, (Math.random() * randomTargetLocationRange) as float,0f) //We generate a random location
 			info("My target location is : " + this.targetlocation.x + ", " + this.targetlocation.y + ", 0")
 			
 			every(periodMs) [ //Period at which we reevaluate the drone actions
@@ -62,7 +62,8 @@ behavior ReachLocationWithObstacleAvoidance {
 	on SimPosePerception {
 		val positionPerceived : Pose = occurrence.pose //We retrieve the position perceived from Airsim
 		this.position = new Vector3(positionPerceived.position)
-		this.orientationz = Math.toDegrees(positionPerceived.orientation.z) as float
+		val quaternion : Vector4 = new Vector4(positionPerceived.orientation.x, positionPerceived.orientation.y,positionPerceived.orientation.z, positionPerceived.orientation.w)
+		this.orientation = quaternion.toEulerAngles()
 	}
 
 	//Update SARL velocity when a KinematicsPerception is received from Airsim
@@ -83,7 +84,7 @@ behavior ReachLocationWithObstacleAvoidance {
 		var result : Vector3 = new Vector3
 		val position : Vector3 = new Vector3(this.position)
 		val lidarPointCloud : float[] = this.lidarData
-		val orientationz : float = this.orientationz
+		val orientationz : float = this.orientation.z
 
 		info("My position : " + position.x + ", " + position.y + ", " + position.z + ". My orientation : " + orientationz)
 		if ((position.x < (this.targetlocation.x + distanceError)) && //Test if we reached the target location
@@ -91,7 +92,7 @@ behavior ReachLocationWithObstacleAvoidance {
 		(position.y < (this.targetlocation.y + distanceError)) &&
 		(position.y > (this.targetlocation.y - distanceError))) 
 		{
-			if(position.z < (1 + distanceError)) { //If we need to descend
+			if(position.z < (1 - distanceError)) { //If we need to descend
 				info("I'm landing")
 				result = new Vector3(0f,0f,2f)
 			}
@@ -116,14 +117,14 @@ behavior ReachLocationWithObstacleAvoidance {
 		else {
 			var distance : Vector3 = new Vector3()
 			distance = this.targetlocation - position
-			var angletohave : float = Math.toDegrees((Math.atan((distance.y / distance.x) as double))) as float
-			if (((orientationz < (angletohave + degreeError)) && (orientationz > (angletohave - degreeError)))) { // If we are in line with the target we move forward //TODO Revoir
+			val angletohave : float = ((Math.atan((distance.y / distance.x) as double))) as float
+			if (((orientationz < (angletohave + degreeError)) && (orientationz > (angletohave - degreeError)))) { // If we are in line with the target we move forward
 				info("I move in direction of the target location")
 				result = new Vector3(distance.x / 3, distance.y / 3, 0f) 		// TODO Coef ?
 			}
 			else { // Else we rotate to be in line with the target
-				info("I rotate of to be in line with the target location : " + angletohave)
-				emit(new RotateToYaw(angletohave))
+				info("I rotate of to be in line with the target location : " + angletohave as float)
+				emit(new RotateToYaw(-Math.toDegrees(angletohave)as float))
 			}
 		}
 		return result

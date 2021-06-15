@@ -75,6 +75,36 @@ class Vector4 implements Vector<Vector4> {
 		return this.t
 	}
 
+	/**
+	 * Added function to convert orientation quaternion 
+	 * to roll pitch and yaw vector in degrees
+	 */
+	def toEulerAngles() : Vector3 {
+		// roll (x-axis rotation)
+		val t0 : Float = 2.0f * (this.t * this.x + this.y * this.z)
+		val t1 : Float = 1.0f - 2.0f * (this.x * this.x + this.y * this.y)
+		// val roll : Float = Math.toDegrees(Math.atan((t0/t1)as double)) as Float
+		val roll : Float = (Math.atan((t0 / t1) as double)) as Float
+		
+
+		// pitch (y-axis rotation)
+		var t2 : Float = 2.0f * (this.t*this.y - this.z*this.x)
+		if (t2 > 1.0f)
+			t2 = 1.0f
+		if (t2 < -1.0f)
+			t2 = -1.0f
+		//val pitch : Float = Math.toDegrees(Math.asin(t2)) as Float
+		val pitch : Float = (Math.asin(t2)) as Float
+
+		// yaw (z-axis rotation)
+		val t3 : Float = 2.0f * (this.t*this.z + this.x*this.y)
+		val t4 : Float = 1.0f - 2.0f * (this.y*this.y + this.z*this.z)
+		//val yaw : Float = Math.toDegrees(Math.atan((t3 / t4) as double)) as Float
+		val yaw : Float = (Math.atan((t3 / t4) as double)) as Float
+		
+		return new Vector3(pitch,roll,yaw)
+	}
+
 	/** 
 	 * Operator plus, computes the sum of two vectors (this and v)
 	 * @param v the vector to add
