@@ -15,10 +15,11 @@
         "Lidar": {
           "SensorType": 6,
           "Enabled": true,
-          "Range":  3,
-          "NumberOfChannels": 10,
-          "PointsPerSecond": 10000,
+          "Range":  5,
+          "NumberOfChannels": 5,
+          "PointsPerSecond": 1000,
           "DrawDebugPoints": true,
+          "Pitch": -145,
           "DataFrame":  "VehicleInertialFrame"
         }
       }
