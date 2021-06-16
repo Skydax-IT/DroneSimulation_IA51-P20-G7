@@ -5,8 +5,8 @@ package io.sarl.airsim
 
 //import io.sarl.airsim.behaviors.target.ReachTargetPoint3D
 // import io.sarl.airsim.behaviors.forward.ForwardWithBasicAvoidance
-//import io.sarl.airsim.behaviors.target.ReachLocationWithObstacleAvoidance
-import io.sarl.airsim.behaviors.target.ReachLocationWithDronesAndObstacleAvoidance
+import io.sarl.airsim.behaviors.target.ReachLocationWithObstacleAvoidance
+//import io.sarl.airsim.behaviors.target.ReachLocationWithDronesAndObstacleAvoidance
 
 import io.sarl.core.Behaviors
 import io.sarl.core.Initialize
@@ -24,7 +24,7 @@ agent DroneAgent {
 		//registerBehavior(new ReachTargetPoint(this))
 		//registerBehavior(new ReachTargetPoint3D(this))
 		// registerBehavior(new TakeoffBehavior(this))
-		//registerBehavior(new ReachLocationWithObstacleAvoidance(this))
-		registerBehavior(new ReachLocationWithDronesAndObstacleAvoidance(this))
+		registerBehavior(new ReachLocationWithObstacleAvoidance(this))
+		//registerBehavior(new ReachLocationWithDronesAndObstacleAvoidance(this))
 	}
 }

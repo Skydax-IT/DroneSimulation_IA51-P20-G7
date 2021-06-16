@@ -80,11 +80,8 @@ agent SimulationControllerAgent {
 		var agentToSpawn : String = occurrence.parameters.toString()
 		agentToSpawn = agentToSpawn.substring(1, agentToSpawn.length() - 1)
 		var agentNumber : int = Integer.parseInt(agentToSpawn)
-		info(agentNumber)
 		for (var i = 1; i < agentNumber; i++) {
 			pool += "S" + i.toString()
-			info("ezzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz")
-			info(pool)
 		}
 		affectationStrategy = new FcfsFixedSizePoolAllocationStrategy([|
 			val pool = pool
