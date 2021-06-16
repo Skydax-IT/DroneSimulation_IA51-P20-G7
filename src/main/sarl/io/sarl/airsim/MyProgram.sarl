@@ -1,0 +1,17 @@
+/** 
+ * 
+ */
+package io.sarl.airsim
+
+import io.sarl.bootstrap.SRE
+
+/** 
+ * @author Malek
+ * 
+ */
+class MyProgram extends Object {
+	static def main(arguments : String*) : void {
+		var bootstrap = SRE::getBootstrap
+		bootstrap.startAgent(typeof(BootAgent))
+	}
+}
