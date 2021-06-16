@@ -1,0 +1,362 @@
+package io.sarl.airsim.behaviors.target
+
+import fr.utbm.airsim.api.Pose
+import io.sarl.airsim.communication.NotifyKinematics
+import io.sarl.airsim.communication.NotifyPose
+import io.sarl.airsim.influences.MoveByVelocity
+import io.sarl.airsim.influences.RotateToYaw
+import io.sarl.airsim.influences.Takeoff
+import io.sarl.airsim.math.Vector3
+import io.sarl.airsim.math.Vector4
+import fr.utbm.airsim.api.Vector3r
+import io.sarl.airsim.perceptions.LidarDataPerception
+import io.sarl.airsim.perceptions.sim.SimGroundTruthKinematicsPerception
+import io.sarl.airsim.perceptions.sim.SimPosePerception
+import io.sarl.airsim.simulation.events.SimulationInitialized
+import io.sarl.core.DefaultContextInteractions
+import io.sarl.core.Logging
+import io.sarl.core.Schedules
+import io.sarl.lang.core.Address
+import java.util.concurrent.ConcurrentHashMap
+
+/** 
+ * This is our own drone behavior which is supposed to enable them to set a target location to reach while avoiding obstacles and then return to the base
+ * @author Malek Fardeau
+ */
+
+behavior ReachLocationWithDronesAndObstacleAvoidance {
+	
+	uses Logging, DefaultContextInteractions, Schedules
+	
+	// Constantes
+	val periodMs : int = 1000
+	val randomTargetLocationRange : float = 100f
+	val distanceError : float = 1f
+	val degreeError : float = 3f
+	val velocityScalingValue = 6f
+	val avoidanceRadius = 1.5f
+	val accelerationWhenAvoiding : float = 1.5f
+	
+	// Variables
+	protected var position : Vector3 = null
+	protected var orientation : Vector3 = null
+	protected var speed : Vector3 = null
+	protected var initiallocation : Vector3 = null
+	protected var targetlocation : Vector3 = null
+	protected var lidarData : float[] = null
+	protected val neighbours = new ConcurrentHashMap<Address, ExternalDroneState>
+
+	//For loop behavior when the simulation starts
+	on SimulationInitialized {
+		emit(new Takeoff) //Emit takeoff event to notify the SimulationControllerAgent
+		
+		in(5000) [ // Initial delay before starting
+			this.initiallocation = new Vector3(this.position.x,this.position.y,0f)
+			//this.targetlocation = new Vector3(40f, 0f, 0f)
+			this.targetlocation = generateTargetLocation() //We generate a random target location
+			info("My target location is : " + this.targetlocation.x + ", " + this.targetlocation.y + ", 0")
+			
+			every(periodMs) [ //Period at which we reevaluate the drone actions
+				val movementForce : Vector3 = computeForce() // Create a force vector for the movement
+				
+				emit(new MoveByVelocity(movementForce.getX(), movementForce.getY(), movementForce.getZ(), periodMs/1000f))
+			]
+		]
+		
+	}
+	
+	//Update SARL position and orientation when a PosePerception is received from Airsim
+	on SimPosePerception {
+		val positionPerceived : Pose = occurrence.pose //We retrieve the position perceived from Airsim
+		this.position = new Vector3(positionPerceived.position)
+		val quaternion : Vector4 = new Vector4(positionPerceived.orientation.x, positionPerceived.orientation.y,positionPerceived.orientation.z, positionPerceived.orientation.w)
+		this.orientation = quaternion.toEulerAngles()
+
+		emit(new NotifyPose(positionPerceived))
+	}
+
+	//Update SARL velocity when a KinematicsPerception is received from Airsim
+	on SimGroundTruthKinematicsPerception {
+		val velocity : Vector3 = new Vector3(occurrence.state.linearVelocity)
+		this.speed = velocity
+
+		emit(new NotifyKinematics(occurrence.state))
+	}
+	
+	// Receive the others agent position
+	on NotifyPose [!isMe(occurrence.source)] {
+		if (neighbours.containsKey(occurrence.source)) {
+			neighbours.put(occurrence.source,
+				new ExternalDroneState(neighbours.get(occurrence.source), occurrence.pose))
+		} else {
+			neighbours.put(occurrence.source, new ExternalDroneState(occurrence.pose, null))
+		}
+	}
+
+	//Receive the others agent velocity
+	on NotifyKinematics [!isMe(occurrence.source)] {
+		if (neighbours.containsKey(occurrence.source)) {
+			neighbours.put(occurrence.source,
+				new ExternalDroneState(neighbours.get(occurrence.source), occurrence.state))
+		} else {
+			val nullPose : Pose = null
+			neighbours.put(occurrence.source, new ExternalDroneState(nullPose, occurrence.state))
+		}
+	}
+
+	// Update SARL LidarData when a LidarDataPerception is received from Airsim
+	on LidarDataPerception {
+		val lidarPointCloud : float[] = occurrence.lidarData.pointCloud
+		this.lidarData = lidarPointCloud
+	}
+
+	//Function that computes the force to move the drone
+	def computeForce() : Vector3 {
+		//We copy the variables to avoid problems with parallel execution
+		var result : Vector3 = new Vector3
+		val position : Vector3 = new Vector3(this.position)
+		val orientationz : float = Math.toDegrees(this.orientation.z as double)as float
+
+		info("My position : " + position.x + ", " + position.y + ", " + position.z + ". My orientation : " + orientationz)
+		if ((position.x < (this.targetlocation.x + distanceError)) && //Test if we reached the target location
+		(position.x > (this.targetlocation.x - distanceError)) &&
+		(position.y < (this.targetlocation.y + distanceError)) &&
+		(position.y > (this.targetlocation.y - distanceError))) 
+		{
+			if(position.z < (1 - distanceError)) { //If we need to descend
+				info("I'm landing")
+				result = generateVelocity(0f,0f,1f)
+			}
+			else { //If we are arrived, we generate a new location
+				if((this.targetlocation.x == this.initiallocation.x) && (this.targetlocation.y == this.initiallocation.y)) { //If we are back to base we generate a new random location
+					info("I'm back to base, I go to a new location")
+					this.targetlocation = generateTargetLocation()
+				}
+				else {
+					info("I'm arrived, I go back to base")
+					this.targetlocation = this.initiallocation
+				}
+			}
+		}
+		else if (position.z > -2) { //If we need to ascend
+			info("I ascend")
+			result = generateVelocity(0f,0f,-1f)
+		}
+		else {
+			val droneToAvoid : Vector3 = computeDronesToAvoid()
+			if (droneToAvoid !== null ) {
+				if ((droneToAvoid.x != 0f) || (droneToAvoid.y != 0f) || (droneToAvoid.z != 0f)) {
+					result = droneToAvoid
+					info("I avoid a drone with a force : " + result.x + ", " + result.y + ", " + result.z)
+					return result
+				}
+			}
+			val pointToAvoid : Vector3 = computePointsToAvoid()
+			if ((pointToAvoid.x != 0f) || (pointToAvoid.y != 0f) || (pointToAvoid.z != 0f)) { // If we need to avoid an obstacle
+				var distance : Vector3 = new Vector3()
+				distance = pointToAvoid - position
+				var velocity : Vector3 = generateVelocity(distance.x,distance.y,distance.z)
+				result = new Vector3(-accelerationWhenAvoiding * velocity.x, -accelerationWhenAvoiding * velocity.y, -0.5f * velocity.z) //We want to go the opposite direction fast and diminish the z influence
+				info("I avoid the obstacle with a force : " + result.x + ", " + result.y + ", " + result.z)
+			}
+			else {
+				var distance : Vector3 = new Vector3()
+				distance = this.targetlocation - position
+				var angletohave : float = Math.toDegrees(Math.atan2(-distance.y as double, -distance.x as double)) as float
+
+				if (((orientationz < (angletohave + degreeError)) && (orientationz > (angletohave - degreeError)))) { // If we are in line with the target we move forward
+					info("I move in direction of the target location")
+					result = generateVelocity(distance.x, distance.y, 0f,true)
+				} 
+				else { // Else we rotate to be in line with the target
+					info("I rotate of to be in line with the target location : " + angletohave)
+					emit(new RotateToYaw(angletohave))
+				}
+			}
+		}
+		return result
+	}
+
+	def computePointsToAvoid() : Vector3 {
+		var result : Vector3 = new Vector3(0f, 0f, 0f)
+		
+		val lidarPointCloud : float[] = this.lidarData
+		var lidarSize : int = lidarPointCloud.size
+		if (lidarSize >= 3) { // If we detected an obstacle with lidar
+			var meanPoint : float[] = #[lidarPointCloud.get(0),lidarPointCloud.get(1),lidarPointCloud.get(2)]
+			for (var i = 3;i<lidarSize;i++) { //We compute the mean of all the points detected
+				meanPoint.set(i%3,meanPoint.get(i%3)+lidarPointCloud.get(i))
+			}
+			lidarSize = lidarSize/3
+			val pointToAvoid : Vector3 = new Vector3(meanPoint.get(0)/lidarSize, meanPoint.get(1)/lidarSize, meanPoint.get(2)/lidarSize)
+			info("I've go an obstacle to avoid : " + pointToAvoid.x + ", " + pointToAvoid.y + ", " + pointToAvoid.z)
+			this.lidarData = null // To not recompute old LidarData
+			result = pointToAvoid
+		}
+		return result
+	}
+
+	def generateVelocity(x : float, y : float, z : float, diminishwhenclose : boolean = false) : Vector3 { // This function is used to generate a scaled velocity value from a distance to a point
+		var result : Vector3 = null
+
+		val sum : float = Math.abs(x) + Math.abs(y) + Math.abs(z)
+		if ((sum < 10 * this.distanceError) && (diminishwhenclose == true)) { // If we are really close to the target location we want to go slower
+			result = new Vector3(x / sum, y / sum, z)
+		} else { // Else we scale the values
+			result = new Vector3((x / sum) * this.velocityScalingValue, (y / sum) * this.velocityScalingValue,
+				(z / sum) * this.velocityScalingValue)
+		}
+		return result
+	}
+
+	def generateTargetLocation() : Vector3 {
+		return new Vector3(((Math.random() * randomTargetLocationRange * 2) - randomTargetLocationRange) as float,
+			((Math.random() * randomTargetLocationRange * 2) - randomTargetLocationRange) as float, 0f) 	// We generate a random location
+	}
+	
+	def computeDronesToAvoid : Vector3 {
+		var sliding : Vector3 = null
+		
+		// Storing references to avoid async changes
+		val targetPoint = this.targetlocation
+		val position = this.position
+		
+		sliding = neighbours.filter[k, v|v.pose !== null && v.state !== null].mapValues [
+			val selfPosition = new Vector4(position.getX(), position.getY(), position.getZ(), 0f)
+			val selfDirection = this.speed
+			val otherPosition = new Vector4(it.pose.position.getX(), it.pose.position.getY(), it.pose.position.getZ(),
+				0f)
+			val otherDirection = it.state.linearVelocity
+			val otherAcceleration : Vector3 = it.state.linearAcceleration.toVector3
+
+			// If some data are erroneous, we ignore them
+			if (Float.isNaN(otherPosition.getX()) || Float.isNaN(selfPosition.getX()) ||
+				Float.isNaN(otherDirection.getX()) || Float.isNaN(selfDirection.getX()))
+				return new Vector3()
+
+			// var d = Math.abs(
+			// otherPosition.minus(selfPosition).cross(new Vector4(selfDirection.getX(), selfDirection.getY(), selfDirection.getZ(), 1f)).dot(new Vector4(otherDirection.getX(), otherDirection.getY(), otherDirection.getZ(), 1f))) /
+			// (new Vector4(selfDirection.getX(), selfDirection.getY(), selfDirection.getZ(), 1f).cross(new Vector4(otherDirection.getX(), otherDirection.getY(), otherDirection.getZ(), 1f)).length())
+			val a0 = selfPosition
+				val b0 = otherPosition
+			val va = new Vector4(selfDirection.getX(), selfDirection.getY(), selfDirection.getZ(), 1.0f)
+			val vb = new Vector4(otherDirection.getX(), otherDirection.getY(), otherDirection.getZ(), 1.0f)
+			val a = va.squaredNorm() // Norme du quaternion de notre vitesse
+			val b = va.dot(vb) // Produit scalaire notre vitesse avec celle de l'autre
+			val c = vb.squaredNorm() // Norme du quaternion de la vitesse de l'autre
+			val w0 = (a0 - b0) // Vecteur Distance : AutrePosition>NotrePosition
+			val _d = va.dot(w0) // Produit scalaire notre vitesse et vecteur distance
+			val e = vb.dot(w0) // Produit scalaire vitesse autre et vecteur distance
+			val e1 = a0 - b0 // Vecteur distance une 2ème fois ?
+			val e2 = va * (b * e - c * _d) - vb * (a * e - b * _d) // NotreVitesse*(ProdNotVitAutreVit * ProdAutreVitDistance - NormeVitesseAutre * ProdNotreVitVecteurDistance) - AutreVit*(NormeNotreVit*ProdVitAutreDistance - ProdNotreVitAutreVit*ProtNotreVitDistance)
+			val e3 = (a * c - b * b) // NormeNotreVit * NormeAutreVit - ProdNotreVitAutreVit^2
+			var d = (e1 + e2 * (1.0f / e3)).norm() // VecteurDistance + e2/e3
+			if (Double.isNaN(d)) {
+				// If d is NaN it means that the direction are colinear
+				// If so, the distance between the lines is the distance of a point from a line to a point
+				// of the other line
+				// val u = new Vector4(otherDirection.getX(), otherDirection.getY(), otherDirection.getZ(), 1f)
+				// d = selfPosition.minus(otherPosition).cross(u).length() / u.length()
+				d = 0.0f // TODO
+				if(Double.isNaN(d)) d = 0.0f
+			}
+				
+				if (d > avoidanceRadius) {
+				// The minimal distance will be above the avoidance radius so there won't be a collision
+				new Vector3()
+			} else {
+				// There may be a collision
+				// val t = computeCollisionTime(d, selfPosition, selfDirection, otherPosition, otherDirection.toVector3)
+				val t = Math.min(
+					computeCollisionTime(d, selfPosition, selfDirection, otherPosition, otherDirection.toVector3),
+					computeCollisionTime(2 * avoidanceRadius, selfPosition, selfDirection, otherPosition,
+						otherDirection.toVector3))
+
+				if (t < 1e-3f)
+					return new Vector3() // Too late, we ignore to avoid errors further
+						
+					if (t > 1e3f)
+					return new Vector3() // Too early
+				val otherClosePosition = new Vector4(otherPosition.getX() + otherDirection.getX() * t,
+					otherPosition.getY() + otherDirection.getY() * t, otherPosition.getZ() + otherDirection.getZ() * t,
+					t)
+
+				val obstacleDirection = (otherClosePosition - selfPosition).normalized()
+
+				if ((targetPoint - selfPosition.toVector3()).dot(obstacleDirection.toVector3()) < 0.0f)
+					return new Vector3()
+
+				// 2D avoidance strategy
+				// val slidingDirection = new Vector3(-obstacleDirection.getY(), obstacleDirection.getX(), 0.0f)
+				// Try #01 3D avoidance strategy
+				// val otu = (this.targetPoint - selfPosition.toVector3()).normalized()
+				// val vu = new Vector3(selfDirection.getX(), selfDirection.getY(), selfDirection.getZ()).normalized()
+				// val slidingDirection: Vector3 = otu.cross(vu)
+				// Try #02 3D avoidance strategy
+				val slidingDirectionXY = new Vector3(-obstacleDirection.getY(), obstacleDirection.getX(), 0.0f)
+				// val slidingDirectionXY = new Vector3()
+				val slidingDirectionXZ = new Vector3(obstacleDirection.getZ(), 0.0f, -obstacleDirection.getX())
+				val slidingDirection = (slidingDirectionXY + slidingDirectionXZ).normalized
+
+				val slidingScale = computeSlidingScale(t, 0.25f, 6f, 10f)
+
+				val sign = 1.0f
+				// val slidingVector = slidingDirection * slidingScale.floatValue * sign
+					
+					
+					// New strategy (the direction of the sliding force tries to minimize the deviation to the goal):
+				val PC = obstacleDirection.toVector3().normalized
+				val T = (targetPoint - selfPosition.toVector3())
+				val ProjPCT = T - PC * (T.dot(PC) / PC.norm)
+				val ProjPCTNormalized = ProjPCT.normalized
+				val slidingVector = ProjPCTNormalized * slidingScale.floatValue
+
+				// New term: this term tries to make an agent behave differently from the other ones
+					// val ProjOtherDirection = otherDirection.toVector3 - PC * (otherDirection.toVector3.dot(PC) / PC.norm)
+				// val stabilityVector = -ProjOtherDirection.normalized *
+				// (1.0f / 5.0f * Math.pow((otherPosition.toVector3 - selfPosition.toVector3).norm, 2.0).floatValue)
+				// New term: this term introduces a repulsion between agents, the scale depends on the distance
+				// val distance = (otherPosition - selfPosition).norm
+				// val repulsion = (otherPosition - selfPosition).toVector3.normalized * (10.0f / Math.pow(distance, 2).floatValue)
+				// New term: this term introduces an up/down repulsion based on the distance
+				val distance = (otherPosition - selfPosition).norm
+				val upDownRepulsion = new Vector3(0.0f, 0.0f, selfPosition.z - otherPosition.z).normalized *
+					(27.0f / Math.pow(distance, 2.0).floatValue)
+
+				return slidingVector + upDownRepulsion
+			}
+
+			return new Vector3()
+		].values.filter[!Float.isNaN(it.getX()) && !Float.isNaN(it.getY()) && !Float.isNaN(it.getZ())].reduce [ p1, p2 |
+			new Vector3(p1.getX() + p2.getX(), p1.getY() + p2.getY(), p1.getZ() + p2.getZ())
+		]
+	
+	}
+
+	private def computeCollisionTime(d : Float, selfPosition : Vector4, selfDirection : Vector3,
+		otherPosition : Vector4, otherDirection : Vector3) : Float {
+		val coefA = Math.pow(selfDirection.getX() - otherDirection.getX(), 2) +
+			Math.pow(selfDirection.getY() - otherDirection.getY(), 2) +
+			Math.pow(selfDirection.getZ() - otherDirection.getZ(), 2)
+		var coefB = 2f * (selfPosition.getX() - otherPosition.getX()) * (selfDirection.getX() - otherDirection.getX()) +
+			2f * (selfPosition.getY() - otherPosition.getY()) * (selfDirection.getY() - otherDirection.getY()) +
+			2f * (selfPosition.getZ() - otherPosition.getZ()) * (selfDirection.getZ() - otherDirection.getZ())
+		val coefC = -Math.pow(d, 2)
+
+		val delta = Math.pow(coefB, 2) - 4f * coefA * coefC
+
+		if (delta < 0.0f) {
+			return Float.MAX_VALUE
+		}
+
+		return ((-coefB + Math.sqrt(delta)) / (2 * coefA) / 2).floatValue 	// Note: I'm dividing by two but I don't know why
+	}
+
+	def toVector3(v : Vector3r) {
+		return new Vector3(v.x, v.y, v.z)
+	}
+
+	def computeSlidingScale(t : Float, offset : Float = 0.25f, alpha : Float = 2f, tau : Float = 8f) {
+		return (alpha - offset) * Math.exp(-t / tau) + offset
+	}
+}

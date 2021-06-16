@@ -25,10 +25,11 @@ behavior ReachLocationWithObstacleAvoidance {
 	
 	// Constantes
 	val periodMs : int = 1000
-	val randomTargetLocationRange : float = 30f
+	val randomTargetLocationRange : float = 100f
 	val distanceError : float = 1f
 	val degreeError : float = 3f
 	val velocityScalingValue = 6f
+	val accelerationWhenAvoiding : float = 1.5f
 	
 	// Variables
 	protected var position : Vector3 = null
@@ -115,7 +116,7 @@ behavior ReachLocationWithObstacleAvoidance {
 				var distance : Vector3 = new Vector3()
 				distance = pointToAvoid - position
 				var velocity : Vector3 = generateVelocity(distance.x,distance.y,distance.z)
-				result = new Vector3(-2f * velocity.x, -2f * velocity.y, -0.5f * velocity.z) //We want to go the opposite direction fast and diminish the z influence
+				result = new Vector3(-accelerationWhenAvoiding * velocity.x, -accelerationWhenAvoiding * velocity.y,-0.5f * velocity.z) // We want to go the opposite direction fast and diminish the z influence
 				info("I avoid the obstacle with a force : " + result.x + ", " + result.y + ", " + result.z)
 			}
 			else {
