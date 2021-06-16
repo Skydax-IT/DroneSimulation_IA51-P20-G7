@@ -5,6 +5,11 @@ package io.sarl.airsim
 
 import io.sarl.core.Initialize
 import io.sarl.core.Lifecycle
+import java.io.FileWriter
+import java.io.IOException
+import javax.swing.JFileChooser
+import javax.swing.JOptionPane
+import javax.swing.filechooser.FileSystemView
 
 /** 
  * Agent in charge of starting the other agents (initial state)
@@ -16,15 +21,17 @@ agent BootAgent {
 	uses Lifecycle
 	
 	/** The total number of agents to spawn */
-	val agentToSpawn = 1
+	var agentToSpawn = 1
 
 	on Initialize {
 		
+		writeSettings()
 		// Run the drone spawning strategy
 		runSpawnStrategy()
 		
+		var parameters : int = agentToSpawn
 		// Spawn the simulation controller agent
-		spawn(SimulationControllerAgent)
+		spawn(SimulationControllerAgent,parameters)
 	}
 	
 	def runSpawnStrategy() {
@@ -34,5 +41,67 @@ agent BootAgent {
 			spawn(DroneAgent)
 			Thread.sleep((1500 * Math.random()).intValue)
 		}
+	
+	}
+	def writeSettings() {
+		var ansInt : int = 0
+		do{
+		val ans = JOptionPane.showInputDialog("How many drones ?", null)
+		ansInt = Integer.parseInt(ans)
+		} while (ansInt < 1)
+		agentToSpawn = ansInt
+	var settingContent = "{
+  \"SeeDocsAt\": \"https://github.com/Microsoft/AirSim/blob/master/docs/settings_json.md\",
+  \"SettingsVersion\": 1.2,
+  \"SimMode\": \"Multirotor\",
+  \"ClockSpeed\": 1.0,
+  \"Vehicles\": {"
+  
+  for(var x : int = 0; x<ansInt; x++) {
+  	
+ 	settingContent +=
+    "\"S" +x+"\": {
+      \"VehicleType\":  \"SimpleFlight\",
+      \"AutoCreate\": true,
+      \"AllowAPIAlways\": true,
+      \"X\": "+ x*2+",
+      \"Y\": 0,
+      \"Z\": -2,
+      \"Sensors\": {
+        \"Lidar\": {
+          \"SensorType\": 6,
+          \"Enabled\": true,
+          \"Range\":  5,
+          \"NumberOfChannels\": 5,
+          \"PointsPerSecond\": 1000,
+          \"DrawDebugPoints\": true,
+          \"Pitch\": -145,
+          \"DataFrame\":  \"VehicleInertialFrame\"
+				}
+			}
+		}"
+		if(x<ansInt-1)
+		{
+			settingContent += ","
+		}
+}
+      settingContent += "
+	}
+}"
+		var fr : JFileChooser = new JFileChooser();
+		var fw : FileSystemView = fr.getFileSystemView();
+		System.out.println(fw.getDefaultDirectory());
+		
+		val myWriter = new FileWriter(fw.getDefaultDirectory()+"\\AirSim\\settings.json")
+		try{
+			myWriter.write(settingContent)
+			myWriter.close()
+			System.out.println("Successfully wrote to the file.")
+		} catch (e : IOException) {
+			System.out.println("An error occurred.")
+		}
+
+		JOptionPane.showMessageDialog(null,"Please, press play on AirSim")
+	
 	}
 }
