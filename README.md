@@ -19,3 +19,8 @@ With the help of the work from :
     journal = {GitHub repository},
     howpublished = {\url{https://github.com/alexandrelombard/sarl-arisim-interface}}
 }
+
+#Authors 
+- Malek "M003T" Fardeau-Spire
+- Enzo "Skydax-IT" Licata
+- Théo "Tyriaax" Lieffroy
