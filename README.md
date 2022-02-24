@@ -1,6 +1,9 @@
 # DroneSimulation_IA51-P20-G7
 Repository for UTBM Work Project of Drone Simulation for IA51 P20 Group 7
 
+## Project description
+In the context of a course at UTBM, we developed a Multi-Agents System to Simulate Autonomous Drones behaviors in Unreal Engine.
+
 ## How to run the project?
 - Run executable.jar with a JRE and AirSim with Unreal 4.25 installed with an environnment setup (You can use the default one Blocks.sln)
 
